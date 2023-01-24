@@ -1,0 +1,50 @@
+#!/bin/bash
+
+run() {
+  exec=$1
+  printf "\x1b[38;5;104m -- ${exec}\x1b[39m\n"
+  eval ${exec}
+}
+
+say () {
+ say=$1
+ printf "\x1b[38;5;220m${say}\x1b[38;5;255m\n"
+}
+
+say "Install Service file rs-server"
+cat <<EOF > /etc/systemd/system/rs-server.service
+[Unit]
+Description=RelayBOX HTTP Server
+Requires=networking.service
+After=networking.service
+
+[Service]
+Type=simple
+StandardInput=tty-force
+ExecStart=/bin/bash -c "/opt/RelayBOX/bin/rs-server 2>&1"
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+say "Install Service file rs-input"
+cat <<EOF > /etc/systemd/system/rs-input.service
+[Unit]
+Description=RelayBOX Input Listener
+Requires=networking.service
+After=networking.service
+
+[Service]
+Type=simple
+StandardInput=tty-force
+ExecStart=/bin/bash -c "/opt/RelayBOX/bin/rs-input --url=\"http://127.0.0.1:8000/out/on/delayed?3\" --state=0 2>&1"
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+run "systemctl daemon-reload"
+run "systemctl restart rs-server"
+run "systemctl restart rs-input"
